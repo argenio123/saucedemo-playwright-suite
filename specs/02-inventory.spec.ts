@@ -6,9 +6,9 @@ import { note, defect } from '../utils/report';
  * Product catalogue: contents, integrity and sorting.
  * Covers TC-016 to TC-026.
  */
-test.describe('Product catalogue', () => {
+test.describe('Product catalogue @S7a456d7b', () => {
 
-  test('TC-016 The catalogue lists exactly six products', async ({ shopper }, testInfo) => {
+  test('TC-016 The catalogue lists exactly six products @Tb9cc5a26', async ({ shopper }, testInfo) => {
     await expect(shopper.items).toHaveCount(6);
     const names = await shopper.names();
 
@@ -17,7 +17,7 @@ test.describe('Product catalogue', () => {
     note(testInfo, `The catalogue rendered exactly six products and the set matched the reference catalogue with no additions or omissions: ${names.join(', ')}.`);
   });
 
-  test('TC-017 Every product card carries a name, description, price and image', async ({ shopper }, testInfo) => {
+  test('TC-017 Every product card carries a name, description, price and image @T23522b1c', async ({ shopper }, testInfo) => {
     const count = await shopper.items.count();
     const incomplete: string[] = [];
 
@@ -37,7 +37,7 @@ test.describe('Product catalogue', () => {
     note(testInfo, `All ${count} product cards were inspected for the four mandatory elements. ${incomplete.length === 0 ? 'Every card carried a non-empty name, description, a price formatted with a leading $, and an image source.' : `Incomplete cards: ${incomplete.join('; ')}.`}`);
   });
 
-  test('TC-018 Displayed prices match the reference catalogue', async ({ shopper }, testInfo) => {
+  test('TC-018 Displayed prices match the reference catalogue @T8a22c500', async ({ shopper }, testInfo) => {
     const mismatches: string[] = [];
 
     for (const product of PRODUCTS) {
@@ -54,7 +54,7 @@ test.describe('Product catalogue', () => {
       : `Price discrepancies found: ${mismatches.join('; ')}.`);
   });
 
-  test('TC-019 Sorting by name A to Z orders the catalogue ascending', async ({ shopper }, testInfo) => {
+  test('TC-019 Sorting by name A to Z orders the catalogue ascending @Te0e1426f', async ({ shopper }, testInfo) => {
     await shopper.sortBy('az');
     const names = await shopper.names();
 
@@ -62,7 +62,7 @@ test.describe('Product catalogue', () => {
     note(testInfo, `With "Name (A to Z)" selected the catalogue was returned in ascending alphabetical order: ${names.join(' < ')}.`);
   });
 
-  test('TC-020 Sorting by name Z to A orders the catalogue descending', async ({ shopper }, testInfo) => {
+  test('TC-020 Sorting by name Z to A orders the catalogue descending @T93ea24e7', async ({ shopper }, testInfo) => {
     await shopper.sortBy('za');
     const names = await shopper.names();
 
@@ -70,7 +70,7 @@ test.describe('Product catalogue', () => {
     note(testInfo, `With "Name (Z to A)" selected the catalogue was returned in descending alphabetical order, beginning with "${names[0]}" and ending with "${names[names.length - 1]}".`);
   });
 
-  test('TC-021 Sorting by price low to high orders the catalogue ascending', async ({ shopper }, testInfo) => {
+  test('TC-021 Sorting by price low to high orders the catalogue ascending @T299a0850', async ({ shopper }, testInfo) => {
     await shopper.sortBy('lohi');
     const prices = await shopper.prices();
 
@@ -78,7 +78,7 @@ test.describe('Product catalogue', () => {
     note(testInfo, `With "Price (low to high)" selected the prices ascended without exception: ${prices.map(p => `$${p.toFixed(2)}`).join(' <= ')}.`);
   });
 
-  test('TC-022 Sorting by price high to low orders the catalogue descending', async ({ shopper }, testInfo) => {
+  test('TC-022 Sorting by price high to low orders the catalogue descending @T681541ab', async ({ shopper }, testInfo) => {
     await shopper.sortBy('hilo');
     const prices = await shopper.prices();
 
@@ -87,7 +87,7 @@ test.describe('Product catalogue', () => {
     note(testInfo, `With "Price (high to low)" selected the prices descended without exception and the most expensive item, the Fleece Jacket at $${priceOf('Sauce Labs Fleece Jacket').toFixed(2)}, was first.`);
   });
 
-  test('TC-023 The sort control offers exactly the four documented options', async ({ shopper }, testInfo) => {
+  test('TC-023 The sort control offers exactly the four documented options @Tb4a4b12e', async ({ shopper }, testInfo) => {
     const values = await shopper.sortDropdown.locator('option').evaluateAll(
       opts => opts.map(o => (o as HTMLOptionElement).value),
     );
@@ -96,7 +96,7 @@ test.describe('Product catalogue', () => {
     note(testInfo, 'The sort control exposed exactly the four documented options (az, za, lohi, hilo) in the expected order, with no unimplemented entries.');
   });
 
-  test('TC-024 The product detail page matches the card it was opened from', async ({ shopper, page }, testInfo) => {
+  test('TC-024 The product detail page matches the card it was opened from @Tf47ba6e6', async ({ shopper, page }, testInfo) => {
     const target = 'Sauce Labs Backpack';
     await shopper.openProduct(target);
 
@@ -109,7 +109,7 @@ test.describe('Product catalogue', () => {
     note(testInfo, `Opening "${target}" from the catalogue navigated to /inventory-item.html, where the detail view showed the same name and the same price (${detailPrice}) as the originating card.`);
   });
 
-  test('TC-025 Back to products returns to the catalogue', async ({ shopper, page }, testInfo) => {
+  test('TC-025 Back to products returns to the catalogue @Tb4177004', async ({ shopper, page }, testInfo) => {
     await shopper.openProduct('Sauce Labs Bike Light');
     await page.locator('#back-to-products').click();
 
@@ -119,7 +119,7 @@ test.describe('Product catalogue', () => {
     note(testInfo, 'The "Back to products" control returned from the product detail view to the catalogue with all six products still rendered.');
   });
 
-  test('TC-026 Product images are distinct for problem_user', async ({ loginPage, inventoryPage }, testInfo) => {
+  test('TC-026 Product images are distinct for problem_user @Tc09caa50', async ({ loginPage, inventoryPage }, testInfo) => {
     // A defect probe rather than a happy path: problem_user is published as a
     // faulty account, so this test documents what it actually renders.
     await loginPage.goto();

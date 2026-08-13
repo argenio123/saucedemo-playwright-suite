@@ -10,9 +10,9 @@ import { note, defect } from '../utils/report';
  * End-to-end journeys and non-functional checks.
  * Covers TC-049 to TC-056.
  */
-test.describe('End-to-end and non-functional', () => {
+test.describe('End-to-end and non-functional @S4612147a', () => {
 
-  test('TC-049 End-to-end purchase of a single product', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-049 End-to-end purchase of a single product @Tbe796707', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     const product = 'Sauce Labs Backpack';
 
     await shopper.addToCart(product);
@@ -32,7 +32,7 @@ test.describe('End-to-end and non-functional', () => {
     note(testInfo, `The full journey completed for a single product: sign in, add "${product}", review the cart, submit customer details, confirm an item total of $${subtotal.toFixed(2)} and a payable total of $${total.toFixed(2)}, then place the order and receive the confirmation.`);
   });
 
-  test('TC-050 End-to-end purchase of the full catalogue reconciles to the penny', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-050 End-to-end purchase of the full catalogue reconciles to the penny @Tf51026c8', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     for (const name of PRODUCT_NAMES) await shopper.addToCart(name);
     await expect(shopper.cartBadge).toHaveText('6');
 
@@ -60,7 +60,7 @@ test.describe('End-to-end and non-functional', () => {
     note(testInfo, `All six products were purchased in one order. The cart lines summed to $${cartTotal.toFixed(2)}, the overview subtotal agreed at $${subtotal.toFixed(2)}, tax was $${tax.toFixed(2)} and the payable total $${total.toFixed(2)}. Every figure reconciled against the reference catalogue independently of the application.`);
   });
 
-  test('TC-051 Sign-in latency stays within the agreed budget', async ({ browser }, testInfo) => {
+  test('TC-051 Sign-in latency stays within the agreed budget @Te30cad53', async ({ browser }, testInfo) => {
     const BUDGET_MS = 20_000;
     const timings: Record<string, number> = {};
 
@@ -89,7 +89,7 @@ test.describe('End-to-end and non-functional', () => {
     }
   });
 
-  test('TC-052 problem_user can complete the checkout form', async ({ browser }, testInfo) => {
+  test('TC-052 problem_user can complete the checkout form @Taf76df55', async ({ browser }, testInfo) => {
     const context = await browser.newContext();
     const page = await context.newPage();
     const login = new LoginPage(page);
@@ -128,7 +128,7 @@ test.describe('End-to-end and non-functional', () => {
     expect.soft(rejected, 'every checkout field must retain typed input').toHaveLength(0);
   });
 
-  test('TC-053 error_user can complete a purchase journey', async ({ browser }, testInfo) => {
+  test('TC-053 error_user can complete a purchase journey @Tdf5451de', async ({ browser }, testInfo) => {
     const context = await browser.newContext();
     const page = await context.newPage();
     const login = new LoginPage(page);
@@ -175,7 +175,7 @@ test.describe('End-to-end and non-functional', () => {
     expect.soft(reachedConfirmation, 'the order must complete').toBeTruthy();
   });
 
-  test('TC-054 visual_user renders the header consistently with the reference account', async ({ browser }, testInfo) => {
+  test('TC-054 visual_user renders the header consistently with the reference account @T21913d89', async ({ browser }, testInfo) => {
     /** Measure where the cart control actually sits for a given account. */
     async function headerGeometry(account: string) {
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -214,7 +214,7 @@ test.describe('End-to-end and non-functional', () => {
     expect.soft(shifted, 'the header layout must not shift between accounts').toBeFalsy();
   });
 
-  test('TC-055 A purchase raises no console errors or failed requests', async ({ diagnostics, loginPage, inventoryPage, cartPage, checkoutPage }, testInfo) => {
+  test('TC-055 A purchase raises no console errors or failed requests @Te80bae5c', async ({ diagnostics, loginPage, inventoryPage, cartPage, checkoutPage }, testInfo) => {
     await loginPage.goto();
     await loginPage.loginExpectingSuccess('standard_user');
     await inventoryPage.addToCart('Sauce Labs Backpack');
@@ -255,7 +255,7 @@ test.describe('End-to-end and non-functional', () => {
       : `The purchase journey completed functionally but the application raised ${faults.length} fault(s): ${faults.slice(0, 8).join(' | ')}.`);
   });
 
-  test('TC-056 Concurrent sessions keep independent carts', async ({ browser }, testInfo) => {
+  test('TC-056 Concurrent sessions keep independent carts @T2b3f0846', async ({ browser }, testInfo) => {
     // Two isolated contexts signed in as the same account. The site persists
     // the cart client-side, so this proves one session cannot disturb another.
     const [contextA, contextB] = await Promise.all([browser.newContext(), browser.newContext()]);

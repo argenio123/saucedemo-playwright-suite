@@ -6,7 +6,7 @@ import { note, defect } from '../utils/report';
  * Checkout: field validation, arithmetic and order completion.
  * Covers TC-037 to TC-048.
  */
-test.describe('Checkout', () => {
+test.describe('Checkout @Sa6680203', () => {
 
   /** Put one known item in the cart and stop on the information step. */
   async function startCheckout(shopper: any, cartPage: any, product = 'Sauce Labs Backpack') {
@@ -15,7 +15,7 @@ test.describe('Checkout', () => {
     await cartPage.checkout();
   }
 
-  test('TC-037 The first name is required', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-037 The first name is required @T86460534', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     await startCheckout(shopper, cartPage);
 
     await checkoutPage.fillInformation('', CHECKOUT_CUSTOMER.lastName, CHECKOUT_CUSTOMER.postalCode);
@@ -27,7 +27,7 @@ test.describe('Checkout', () => {
     note(testInfo, 'Submitting the checkout form with an empty First Name was blocked with "Error: First Name is required" and the journey stayed on the information step.');
   });
 
-  test('TC-038 The last name is required', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-038 The last name is required @T4632b386', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     await startCheckout(shopper, cartPage);
 
     await checkoutPage.fillInformation(CHECKOUT_CUSTOMER.firstName, '', CHECKOUT_CUSTOMER.postalCode);
@@ -37,7 +37,7 @@ test.describe('Checkout', () => {
     note(testInfo, 'Submitting with an empty Last Name was blocked with "Error: Last Name is required" and the order did not advance to the overview.');
   });
 
-  test('TC-039 The postal code is required', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-039 The postal code is required @T60218910', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     await startCheckout(shopper, cartPage);
 
     await checkoutPage.fillInformation(CHECKOUT_CUSTOMER.firstName, CHECKOUT_CUSTOMER.lastName, '');
@@ -47,7 +47,7 @@ test.describe('Checkout', () => {
     note(testInfo, 'Submitting with an empty Postal Code was blocked with "Error: Postal Code is required". All three fields are therefore enforced independently.');
   });
 
-  test('TC-040 Valid customer information advances to the order overview', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-040 Valid customer information advances to the order overview @T13ff44c9', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     await startCheckout(shopper, cartPage);
     await checkoutPage.proceedToOverview();
 
@@ -58,7 +58,7 @@ test.describe('Checkout', () => {
     note(testInfo, `Valid details (${CHECKOUT_CUSTOMER.firstName} ${CHECKOUT_CUSTOMER.lastName}, ${CHECKOUT_CUSTOMER.postalCode}) advanced the journey to "Checkout: Overview" with the Finish control available.`);
   });
 
-  test('TC-041 Cancel on the information step returns to the cart', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-041 Cancel on the information step returns to the cart @Ta4dd44d5', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     await startCheckout(shopper, cartPage);
     await checkoutPage.cancelButton.click();
 
@@ -68,7 +68,7 @@ test.describe('Checkout', () => {
     note(testInfo, 'Cancelling the information step returned to the cart with the single selected item still present, so abandoning checkout does not discard the basket.');
   });
 
-  test('TC-042 The overview lists exactly the products being purchased', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-042 The overview lists exactly the products being purchased @Tb9d8dd73', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     const chosen = ['Sauce Labs Backpack', 'Sauce Labs Bike Light'];
     for (const name of chosen) await shopper.addToCart(name);
     await shopper.openCart();
@@ -81,7 +81,7 @@ test.describe('Checkout', () => {
     note(testInfo, `The overview step listed exactly the two products carried from the cart with nothing added or dropped: ${listed.join(', ')}.`);
   });
 
-  test('TC-043 The item total equals the sum of the line prices', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-043 The item total equals the sum of the line prices @T8ddb5a7a', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     const chosen = ['Sauce Labs Backpack', 'Sauce Labs Bike Light', 'Sauce Labs Onesie'];
     for (const name of chosen) await shopper.addToCart(name);
     await shopper.openCart();
@@ -95,7 +95,7 @@ test.describe('Checkout', () => {
     note(testInfo, `Item total reconciled: ${chosen.map(n => `$${priceOf(n).toFixed(2)}`).join(' + ')} = $${expectedSubtotal.toFixed(2)}, which is what the overview displayed.`);
   });
 
-  test('TC-044 Tax is 8 percent of the item total', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-044 Tax is 8 percent of the item total @T4a74a9b4', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     await startCheckout(shopper, cartPage, 'Sauce Labs Backpack');
     await checkoutPage.proceedToOverview();
 
@@ -107,7 +107,7 @@ test.describe('Checkout', () => {
     note(testInfo, `Tax reconciled against the published 8 percent rate: $${subtotal.toFixed(2)} x 0.08 = $${computed.toFixed(2)}, and the overview displayed $${shownTax.toFixed(2)}.`);
   });
 
-  test('TC-045 The order total equals the item total plus tax', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-045 The order total equals the item total plus tax @Tcfd4b0e8', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     const chosen = ['Sauce Labs Fleece Jacket', 'Sauce Labs Bolt T-Shirt'];
     for (const name of chosen) await shopper.addToCart(name);
     await shopper.openCart();
@@ -122,7 +122,7 @@ test.describe('Checkout', () => {
     note(testInfo, `The three money figures were internally consistent: item total $${subtotal.toFixed(2)} plus tax $${tax.toFixed(2)} equals the displayed total of $${total.toFixed(2)}.`);
   });
 
-  test('TC-046 Finishing the order shows the confirmation', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-046 Finishing the order shows the confirmation @Td606f408', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     await startCheckout(shopper, cartPage);
     await checkoutPage.proceedToOverview();
     await checkoutPage.finish();
@@ -133,7 +133,7 @@ test.describe('Checkout', () => {
     note(testInfo, 'Completing the order navigated to /checkout-complete.html and displayed the "Thank you for your order!" confirmation together with the dispatch message.');
   });
 
-  test('TC-047 Back Home returns to the catalogue with an emptied cart', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-047 Back Home returns to the catalogue with an emptied cart @T30b0505c', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     await startCheckout(shopper, cartPage);
     await checkoutPage.proceedToOverview();
     await checkoutPage.finish();
@@ -145,7 +145,7 @@ test.describe('Checkout', () => {
     note(testInfo, 'After a completed purchase, "Back Home" returned to the catalogue and the cart had been emptied - the badge was absent, so the basket did not survive the order.');
   });
 
-  test('TC-048 Checkout is refused with an empty cart', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
+  test('TC-048 Checkout is refused with an empty cart @T50e08618', async ({ shopper, cartPage, checkoutPage }, testInfo) => {
     // Business-rule probe. An empty order has no legitimate meaning, so this
     // asserts the rule rather than the implementation.
     await shopper.openCart();
