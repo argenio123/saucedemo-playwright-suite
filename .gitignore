@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Test output
+results/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Secrets - never commit the Testomat.io API key
+.env
+.env.local
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*

@@ -1,0 +1,35 @@
+{
+  "name": "saucedemo_playwright_august_2026",
+  "version": "1.0.0",
+  "description": "Playwright + TypeScript regression suite for https://www.saucedemo.com/ - 56 test cases, TC-001 to TC-056",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed --workers=1",
+    "test:debug": "playwright test --debug --workers=1",
+    "test:auth": "playwright test specs/01-authentication.spec.ts",
+    "test:inventory": "playwright test specs/02-inventory.spec.ts",
+    "test:cart": "playwright test specs/03-cart.spec.ts",
+    "test:checkout": "playwright test specs/04-checkout.spec.ts",
+    "test:e2e": "playwright test specs/05-e2e-and-nonfunctional.spec.ts",
+    "report": "playwright show-report results/html",
+    "testomatio:preview": "check-tests playwright \"specs/**/*.spec.ts\" --typescript",
+    "testomatio:import": "check-tests playwright \"specs/**/*.spec.ts\" --typescript",
+    "testomatio:update-ids": "check-tests playwright \"specs/**/*.spec.ts\" --typescript --update-ids"
+  },
+  "keywords": [
+    "playwright",
+    "typescript",
+    "qa",
+    "test-automation",
+    "saucedemo"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@testomatio/reporter": "^2.13.0",
+    "@types/node": "^22.0.0",
+    "check-tests": "^0.21.0"
+  }
+}

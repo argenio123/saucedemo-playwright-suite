@@ -1,0 +1,78 @@
+name: SauceDemo Regression
+
+on:
+  # Lets Testomat.io (or you, from the Actions tab) launch this run on demand.
+  workflow_dispatch:
+    inputs:
+      testomatio-run:
+        description: Testomat.io run id - passed automatically when launched from Testomat.io
+        required: false
+  push:
+    branches: [main]
+  schedule:
+    # 08:00 Manila time, weekdays.
+    - cron: '0 0 * * 1-5'
+
+jobs:
+  test:
+    name: Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # continue-on-error is deliberate: five cases exist to detect SauceDemo's
+      # published defects and are expected to fail. The step below turns a real
+      # regression - anything beyond those five - into a red build.
+      - name: Run the suite
+        id: run
+        continue-on-error: true
+        env:
+          TESTOMATIO: ${{ secrets.TESTOMATIO }}
+          TESTOMATIO_RUN: ${{ github.event.inputs.testomatio-run }}
+          TESTOMATIO_TITLE: SauceDemo regression - build ${{ github.run_number }}
+        run: npm test
+
+      - name: Fail the build on an unexpected regression
+        if: always()
+        shell: bash
+        run: |
+          EXPECTED="TC-026 TC-048 TC-052 TC-053 TC-054"
+          FAILED=$(node -e "
+            const fs=require('fs');
+            const p='results/case-results.json';
+            if(!fs.existsSync(p)){console.error('no case report produced');process.exit(1);}
+            const rows=JSON.parse(fs.readFileSync(p,'utf8'));
+            console.log(rows.filter(r=>r.status==='FAILED').map(r=>r.tc).join(' '));
+          ")
+          echo "Failed cases: ${FAILED:-none}"
+          for tc in $FAILED; do
+            if [[ " $EXPECTED " != *" $tc "* ]]; then
+              echo "::error::Unexpected failure in $tc - this is a regression, not a known defect."
+              exit 1
+            fi
+          done
+          echo "Only the five known defect detections failed. Suite is healthy."
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: saucedemo-results-${{ github.run_number }}
+          path: |
+            results/
+          retention-days: 14
