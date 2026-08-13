@@ -4,9 +4,18 @@ on:
   # Lets Testomat.io (or you, from the Actions tab) launch this run on demand.
   workflow_dispatch:
     inputs:
+      # Testomat.io sends the ids of the cases it wants run, pipe-separated,
+      # e.g. "T35ea65ff|T04312002|...". GitHub rejects the whole dispatch with
+      # a 422 if an input it is sent is not declared here, so this must stay in
+      # step with whatever Testomat.io puts in its Input Variables tab.
+      grep:
+        description: Playwright --grep filter. Empty runs the whole suite.
+        required: false
+        default: ''
       testomatio-run:
         description: Testomat.io run id - passed automatically when launched from Testomat.io
         required: false
+        default: ''
   push:
     branches: [main]
   schedule:
@@ -41,11 +50,20 @@ jobs:
       - name: Run the suite
         id: run
         continue-on-error: true
+        shell: bash
         env:
           TESTOMATIO: ${{ secrets.TESTOMATIO }}
           TESTOMATIO_RUN: ${{ github.event.inputs.testomatio-run }}
           TESTOMATIO_TITLE: SauceDemo regression - build ${{ github.run_number }}
-        run: npm test
+          GREP: ${{ github.event.inputs.grep }}
+        run: |
+          if [ -n "$GREP" ]; then
+            echo "Running the subset selected in Testomat.io."
+            npx playwright test --grep "$GREP"
+          else
+            echo "No filter supplied - running the whole suite."
+            npx playwright test
+          fi
 
       - name: Fail the build on an unexpected regression
         if: always()
