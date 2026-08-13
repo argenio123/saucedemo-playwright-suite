@@ -234,20 +234,37 @@ test.describe('End-to-end and non-functional @S4612147a', () => {
      * application's own context whatever triggered them.
      */
     const APP_HOST = 'saucedemo.com';
+
     const isForeign = (text: string) => {
-      const urls = text.match(/https?:\/\/[^\s"')]+/g);
+      const urls = text.match(/https?:\/\/[^\s"')\]]+/g);
       return !!urls?.length && urls.every(u => !u.includes(APP_HOST));
     };
 
+    /**
+     * "Failed to load resource: the server responded with a status of NNN" is
+     * the browser narrating an HTTP failure the response listener below has
+     * already captured with a full URL. Counting it again would double-report
+     * an application fault, and - when the message arrives with no resolvable
+     * location - would attribute a third-party failure to the application.
+     * The response channel is authoritative for HTTP; this channel is kept for
+     * what only it reports, which is script-level console.error output.
+     */
+    const isResourceFailure = (text: string) => /Failed to load resource/i.test(text);
+
+    const appConsoleErrors = diagnostics.consoleErrors.filter(
+      e => !isResourceFailure(e) && !isForeign(e),
+    );
+    const appFailedRequests = diagnostics.failedRequests.filter(r => r.includes(APP_HOST));
+
     const faults = [
       ...diagnostics.pageErrors.map(e => `uncaught: ${e}`),
-      ...diagnostics.consoleErrors.filter(e => !isForeign(e)).map(e => `console: ${e}`),
-      ...diagnostics.failedRequests.filter(r => r.includes(APP_HOST)).map(r => `request: ${r}`),
+      ...appConsoleErrors.map(e => `console: ${e}`),
+      ...appFailedRequests.map(r => `request: ${r}`),
     ];
 
     const ignored =
-      diagnostics.consoleErrors.filter(isForeign).length +
-      diagnostics.failedRequests.filter(r => !r.includes(APP_HOST)).length;
+      (diagnostics.consoleErrors.length - appConsoleErrors.length) +
+      (diagnostics.failedRequests.length - appFailedRequests.length);
 
     expect.soft(faults, 'a clean journey must produce no browser faults').toHaveLength(0);
     note(testInfo, faults.length === 0

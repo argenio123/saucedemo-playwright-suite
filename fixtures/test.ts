@@ -46,7 +46,12 @@ export const test = base.extend<Fixtures>({
     const diag: PageDiagnostics = { consoleErrors: [], pageErrors: [], failedRequests: [] };
 
     page.on('console', msg => {
-      if (msg.type() === 'error') diag.consoleErrors.push(msg.text());
+      if (msg.type() !== 'error') return;
+      // Chrome does not put the offending URL in the text of a resource-load
+      // failure - it is only on the location. Without it there is no way to
+      // tell an application fault from a third-party one, so append it.
+      const url = msg.location()?.url ?? '';
+      diag.consoleErrors.push(url ? `${msg.text()} [${url}]` : msg.text());
     });
     page.on('pageerror', err => diag.pageErrors.push(err.message));
     page.on('response', res => {
