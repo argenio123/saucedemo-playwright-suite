@@ -55,20 +55,28 @@ jobs:
       - name: Install k6
         uses: grafana/setup-k6-action@v1
 
+      # The load test executes on the runner and produces the summary artifact.
+      # This is the reliable path and the CI gate - no cloud credentials are
+      # passed, so k6 runs a pure local test that cannot fail on auth.
+      #
+      # To stream to the Grafana Cloud dashboard instead, uncomment the env
+      # block below and set two repository secrets:
+      #   K6_CLOUD_TOKEN      - a token from the k6 app itself
+      #                         (Testing & synthetics -> Performance -> Settings
+      #                         -> API token). A Grafana *service account* token
+      #                         does NOT work: it lacks the k6 stack context and
+      #                         fails with "stack ID not configured".
+      #   K6_CLOUD_PROJECT_ID - the number in the k6 project URL
+      # then change cloud-run-locally to false.
       - name: Run the load test
         uses: grafana/run-k6-action@v1
         env:
           BASE_URL: ${{ github.event.inputs.k6_base_url || 'https://test.k6.io' }}
-          # Both are required together for a cloud run. k6 streams to Grafana
-          # Cloud when the token and project id are present, and errors if only
-          # one is set. When neither is set the run stays local on the runner.
-          K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
-          K6_CLOUD_PROJECT_ID: ${{ secrets.K6_CLOUD_PROJECT_ID }}
+          # K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
+          # K6_CLOUD_PROJECT_ID: ${{ secrets.K6_CLOUD_PROJECT_ID }}
         with:
           path: k6/load-test.js
-          # true keeps the run on the runner; false streams it to Grafana Cloud.
-          # Driven by whether the cloud secrets are configured.
-          cloud-run-locally: ${{ secrets.K6_CLOUD_TOKEN == '' }}
+          cloud-run-locally: true
           flags: --summary-export=k6-summary.json
 
       - uses: actions/upload-artifact@v4
