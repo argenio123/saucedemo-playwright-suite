@@ -80,7 +80,7 @@ test.describe('k6 performance results @Sdb4ab150', () => {
     expect(breaches, 'every k6 threshold must be met').toHaveLength(0);
   });
 
-  test('TC-064 Request failure rate stays under one percent', async ({}, testInfo) => {
+  test('TC-064 Request failure rate stays under one percent @T39af5c52', async ({}, testInfo) => {
     const metrics = loadMetrics();
     if (!metrics) { test.skip(true, `${SUMMARY} not found`); return; }
     const BUDGET = 0.01;
@@ -93,7 +93,7 @@ test.describe('k6 performance results @Sdb4ab150', () => {
     if ((rate as number) >= BUDGET) defect(testInfo, 'PERF-K6-002', `Failure rate ${fmt((rate as number) * 100)}% exceeds ${BUDGET * 100}%.`);
   });
 
-  test('TC-065 The 95th percentile response time is within budget', async ({}, testInfo) => {
+  test('TC-065 The 95th percentile response time is within budget @Tb4e6375a', async ({}, testInfo) => {
     const metrics = loadMetrics();
     if (!metrics) { test.skip(true, `${SUMMARY} not found`); return; }
     const BUDGET_MS = 1000;
@@ -106,7 +106,7 @@ test.describe('k6 performance results @Sdb4ab150', () => {
     if ((p95 as number) >= BUDGET_MS) defect(testInfo, 'PERF-K6-003', `p95 ${fmt(p95)} ms exceeds ${BUDGET_MS} ms.`);
   });
 
-  test('TC-066 The 90th percentile response time is within budget', async ({}, testInfo) => {
+  test('TC-066 The 90th percentile response time is within budget @Tf9fca052', async ({}, testInfo) => {
     const metrics = loadMetrics();
     if (!metrics) { test.skip(true, `${SUMMARY} not found`); return; }
     const BUDGET_MS = 800;
@@ -119,7 +119,7 @@ test.describe('k6 performance results @Sdb4ab150', () => {
     if ((p90 as number) >= BUDGET_MS) defect(testInfo, 'PERF-K6-004', `p90 ${fmt(p90)} ms exceeds ${BUDGET_MS} ms.`);
   });
 
-  test('TC-067 The average response time is within budget', async ({}, testInfo) => {
+  test('TC-067 The average response time is within budget @Tc716b8ed', async ({}, testInfo) => {
     const metrics = loadMetrics();
     if (!metrics) { test.skip(true, `${SUMMARY} not found`); return; }
     const BUDGET_MS = 600;
@@ -132,7 +132,7 @@ test.describe('k6 performance results @Sdb4ab150', () => {
     if ((avg as number) >= BUDGET_MS) defect(testInfo, 'PERF-K6-005', `Average ${fmt(avg)} ms exceeds ${BUDGET_MS} ms.`);
   });
 
-  test('TC-068 Every functional check passes under load', async ({}, testInfo) => {
+  test('TC-068 Every functional check passes under load @Tf8203cc7', async ({}, testInfo) => {
     const metrics = loadMetrics();
     if (!metrics) { test.skip(true, `${SUMMARY} not found`); return; }
 
@@ -146,7 +146,7 @@ test.describe('k6 performance results @Sdb4ab150', () => {
     if (fails > 0) defect(testInfo, 'PERF-K6-006', `${fails} functional check(s) failed under load.`);
   });
 
-  test('TC-069 Throughput meets the minimum request rate', async ({}, testInfo) => {
+  test('TC-069 Throughput meets the minimum request rate @T875cda61', async ({}, testInfo) => {
     const metrics = loadMetrics();
     if (!metrics) { test.skip(true, `${SUMMARY} not found`); return; }
     const MIN_RPS = 1;
@@ -160,7 +160,7 @@ test.describe('k6 performance results @Sdb4ab150', () => {
     if ((rate as number) < MIN_RPS) defect(testInfo, 'PERF-K6-007', `Throughput ${fmt(rate)} req/s is below the ${MIN_RPS} req/s floor.`);
   });
 
-  test('TC-070 The slowest response has no severe outlier', async ({}, testInfo) => {
+  test('TC-070 The slowest response has no severe outlier @Te8e03c2d', async ({}, testInfo) => {
     const metrics = loadMetrics();
     if (!metrics) { test.skip(true, `${SUMMARY} not found`); return; }
     const BUDGET_MS = 3000;
