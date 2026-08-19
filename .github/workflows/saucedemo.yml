@@ -27,6 +27,10 @@ jobs:
     name: Chromium
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Official Playwright image with Chromium and system deps preinstalled, so
+    # there is no slow apt-get step. Tag must match @playwright/test (1.62.1).
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
 
     steps:
       - name: Check out the repository
@@ -41,8 +45,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+      - name: Link Playwright browser metadata
+        run: npx playwright install chromium
 
       # continue-on-error is deliberate: five cases exist to detect SauceDemo's
       # published defects and are expected to fail. The step below turns a real

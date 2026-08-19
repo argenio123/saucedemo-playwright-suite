@@ -17,7 +17,14 @@ jobs:
   playwright-performance:
     name: Playwright performance
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
+    # The official Playwright image ships Chromium and every system dependency
+    # preinstalled, so there is no apt-get step. That step was taking minutes on
+    # every run because the runner's Azure apt mirrors intermittently time out
+    # and fall back. The image tag MUST match the @playwright/test version in
+    # package.json (1.62.1) or the bundled browser will not match the client.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
     steps:
       - uses: actions/checkout@v4
 
@@ -28,7 +35,9 @@ jobs:
 
       - run: npm ci
 
-      - run: npx playwright install --with-deps chromium
+      # Browsers are already in the image; this only links the version metadata.
+      # No --with-deps, so no apt-get and no mirror stall.
+      - run: npx playwright install chromium
 
       - name: Run the performance specs
         env:
