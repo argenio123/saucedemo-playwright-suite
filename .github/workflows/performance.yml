@@ -59,14 +59,16 @@ jobs:
         uses: grafana/run-k6-action@v1
         env:
           BASE_URL: ${{ github.event.inputs.k6_base_url || 'https://test.k6.io' }}
-          # Streams results to Grafana Cloud k6 when the secret is set. Without
-          # it, k6 runs locally on the runner and prints the summary to the log.
+          # Both are required together for a cloud run. k6 streams to Grafana
+          # Cloud when the token and project id are present, and errors if only
+          # one is set. When neither is set the run stays local on the runner.
           K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
+          K6_CLOUD_PROJECT_ID: ${{ secrets.K6_CLOUD_PROJECT_ID }}
         with:
           path: k6/load-test.js
-          # cloud:true uploads the run to the Grafana dashboard. Harmless to
-          # leave on; it falls back to a local run if no token is present.
-          cloud: ${{ secrets.K6_CLOUD_TOKEN != '' }}
+          # true keeps the run on the runner; false streams it to Grafana Cloud.
+          # Driven by whether the cloud secrets are configured.
+          cloud-run-locally: ${{ secrets.K6_CLOUD_TOKEN == '' }}
           flags: --summary-export=k6-summary.json
 
       - uses: actions/upload-artifact@v4
