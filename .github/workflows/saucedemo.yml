@@ -1,13 +1,17 @@
 name: SauceDemo Regression
 
+# One workflow, launched by Testomat.io (or push / schedule). It runs k6 first
+# so the load-test summary exists, then runs the Playwright suite - functional,
+# client-side performance, and the k6 result bridge (TC-063 to TC-070) - all
+# reporting to Testomat.io. Because k6 always runs before the tests, launching
+# ANY folder from Testomat.io works: the k6 cases find their data instead of
+# skipping, and each carries the Grafana dashboard link.
 on:
-  # Lets Testomat.io (or you, from the Actions tab) launch this run on demand.
   workflow_dispatch:
     inputs:
-      # Testomat.io sends the ids of the cases it wants run, pipe-separated,
-      # e.g. "T35ea65ff|T04312002|...". GitHub rejects the whole dispatch with
-      # a 422 if an input it is sent is not declared here, so this must stay in
-      # step with whatever Testomat.io puts in its Input Variables tab.
+      # Testomat.io sends the ids of the cases it wants run, pipe-separated.
+      # GitHub rejects the dispatch with a 422 if sent an undeclared input, so
+      # this must match Testomat.io's Input Variables tab.
       grep:
         description: Playwright --grep filter. Empty runs the whole suite.
         required: false
@@ -16,6 +20,10 @@ on:
         description: Testomat.io run id - passed automatically when launched from Testomat.io
         required: false
         default: ''
+      k6_base_url:
+        description: k6 load-test target - a host you own or a sandbox. Never SauceDemo.
+        required: false
+        default: 'https://test.k6.io'
   push:
     branches: [main]
   schedule:
@@ -48,9 +56,42 @@ jobs:
       - name: Link Playwright browser metadata
         run: npx playwright install chromium
 
-      # continue-on-error is deliberate: five cases exist to detect SauceDemo's
-      # published defects and are expected to fail. The step below turns a real
-      # regression - anything beyond those five - into a red build.
+      - name: Install k6
+        uses: grafana/setup-k6-action@v1
+
+      # Best effort: authenticate to Grafana Cloud so k6 can stream there. A bad
+      # or missing token never breaks the run - k6 falls back to local execution.
+      - name: Authenticate k6 with Grafana Cloud
+        id: k6login
+        continue-on-error: true
+        run: k6 cloud login --token "$K6_CLOUD_TOKEN" --stack gigantictaco781
+        env:
+          K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
+
+      # Runs k6 BEFORE the Playwright suite so k6-summary.json exists when the
+      # k6 result cases (TC-063 to TC-070) run - this is what stops them being
+      # skipped. Streams to Grafana when authenticated and captures the run URL.
+      # Non-fatal on a threshold breach; TC-063 enforces the gate downstream.
+      - name: Run k6 load test
+        continue-on-error: true
+        env:
+          BASE_URL: ${{ github.event.inputs.k6_base_url || 'https://test.k6.io' }}
+        run: |
+          set +e
+          if [ "${{ steps.k6login.outcome }}" = "success" ]; then
+            echo "Cloud auth OK - executing locally and streaming to Grafana."
+            k6 run --out cloud --summary-export=k6-summary.json k6/load-test.js 2>&1 | tee k6-output.txt
+          else
+            echo "No cloud auth - executing locally only."
+            k6 run --summary-export=k6-summary.json k6/load-test.js 2>&1 | tee k6-output.txt
+          fi
+          URL=$(grep -oE 'https://[a-z0-9-]+\.grafana\.net[^ ]*runs/[0-9]+' k6-output.txt | head -1)
+          if [ -n "$URL" ]; then echo "K6_GRAFANA_RUN_URL=$URL" >> "$GITHUB_ENV"; fi
+          echo "Captured Grafana run URL: ${URL:-none}"
+
+      # continue-on-error is deliberate: five functional cases detect SauceDemo's
+      # published defects and are expected to fail. The guard step below turns a
+      # real regression - anything beyond those five - into a red build.
       - name: Run the suite
         id: run
         continue-on-error: true
@@ -59,6 +100,7 @@ jobs:
           TESTOMATIO: ${{ secrets.TESTOMATIO }}
           TESTOMATIO_RUN: ${{ github.event.inputs.testomatio-run }}
           TESTOMATIO_TITLE: SauceDemo regression - build ${{ github.run_number }}
+          K6_GRAFANA_RUN_URL: ${{ env.K6_GRAFANA_RUN_URL }}
           GREP: ${{ github.event.inputs.grep }}
         run: |
           if [ -n "$GREP" ]; then
@@ -88,7 +130,7 @@ jobs:
               exit 1
             fi
           done
-          echo "Only the five known defect detections failed. Suite is healthy."
+          echo "Only the five known defect detections failed (if any). Suite is healthy."
 
       - name: Upload results
         uses: actions/upload-artifact@v4
@@ -97,4 +139,6 @@ jobs:
           name: saucedemo-results-${{ github.run_number }}
           path: |
             results/
+            k6-summary.json
+            k6-output.txt
           retention-days: 14
