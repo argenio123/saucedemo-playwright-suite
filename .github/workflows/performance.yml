@@ -64,25 +64,22 @@ jobs:
       - name: Install k6
         uses: grafana/setup-k6-action@v1
 
-      # The load test executes on the runner and produces the summary artifact.
-      # This is the reliable path and the CI gate - no cloud credentials are
-      # passed, so k6 runs a pure local test that cannot fail on auth.
+      # Executes on the runner and streams results to the Grafana Cloud k6
+      # dashboard (cloud-run-locally: true = run here, upload results there).
       #
-      # To stream to the Grafana Cloud dashboard instead, uncomment the env
-      # block below and set two repository secrets:
-      #   K6_CLOUD_TOKEN      - a token from the k6 app itself
-      #                         (Testing & synthetics -> Performance -> Settings
-      #                         -> API token). A Grafana *service account* token
-      #                         does NOT work: it lacks the k6 stack context and
-      #                         fails with "stack ID not configured".
-      #   K6_CLOUD_PROJECT_ID - the number in the k6 project URL
-      # then change cloud-run-locally to false.
+      # K6_CLOUD_TOKEN MUST be a token from the k6 app itself
+      # (Testing & synthetics -> Performance -> Settings -> API token). A Grafana
+      # *service account* token does NOT work - it lacks the k6 stack context and
+      # fails with "stack ID not configured". K6_CLOUD_PROJECT_ID is the number
+      # in the k6 project URL (8414007). If either secret is missing the run
+      # still executes and the threshold gate still applies; only the dashboard
+      # upload is skipped.
       - name: Run the load test
         uses: grafana/run-k6-action@v1
         env:
           BASE_URL: ${{ github.event.inputs.k6_base_url || 'https://test.k6.io' }}
-          # K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
-          # K6_CLOUD_PROJECT_ID: ${{ secrets.K6_CLOUD_PROJECT_ID }}
+          K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
+          K6_CLOUD_PROJECT_ID: ${{ secrets.K6_CLOUD_PROJECT_ID }}
         with:
           path: k6/load-test.js
           cloud-run-locally: true
