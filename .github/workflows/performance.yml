@@ -1,0 +1,77 @@
+name: Performance
+
+# Runs automatically on every push, and can be launched by hand.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      k6_base_url:
+        description: k6 load-test target - must be a host you own or a sandbox. Never SauceDemo.
+        required: false
+        default: 'https://test.k6.io'
+
+jobs:
+  # Job 1 - client-side performance measured with Playwright against SauceDemo.
+  # Single-session measurement, the same footprint as the functional suite.
+  playwright-performance:
+    name: Playwright performance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Run the performance specs
+        env:
+          TESTOMATIO: ${{ secrets.TESTOMATIO }}
+          TESTOMATIO_TITLE: Performance - build ${{ github.run_number }}
+        run: npx playwright test specs/06-performance.spec.ts
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-performance-${{ github.run_number }}
+          path: results/
+          retention-days: 14
+
+  # Job 2 - server-side load with k6, streamed to Grafana Cloud when a token is
+  # present. Targets the Grafana sandbox, NOT SauceDemo.
+  k6-load:
+    name: k6 load test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run the load test
+        uses: grafana/run-k6-action@v1
+        env:
+          BASE_URL: ${{ github.event.inputs.k6_base_url || 'https://test.k6.io' }}
+          # Streams results to Grafana Cloud k6 when the secret is set. Without
+          # it, k6 runs locally on the runner and prints the summary to the log.
+          K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
+        with:
+          path: k6/load-test.js
+          # cloud:true uploads the run to the Grafana dashboard. Harmless to
+          # leave on; it falls back to a local run if no token is present.
+          cloud: ${{ secrets.K6_CLOUD_TOKEN != '' }}
+          flags: --summary-export=k6-summary.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-summary-${{ github.run_number }}
+          path: k6-summary.json
+          retention-days: 30
