@@ -74,25 +74,26 @@ jobs:
       # A Grafana service-account or access-policy token gives "stack ID not
       # configured". If the secret is absent the run still executes on the runner
       # and the threshold gate still applies; only the cloud upload is skipped.
-      # Runs every k6/*.js locally on the runner. This is the reliable CI gate:
-      # the thresholds fail the build on a regression. No cloud credentials are
-      # passed, so it cannot fail on the Grafana "stack ID" auth wall.
-      #
-      # To publish to the Grafana Cloud dashboard, K6_CLOUD_TOKEN must be the
-      # k6 CLOUD token - the one shown in the k6 app under "Run existing test"
-      # -> CLI, in the "k6 cloud login --token <TOKEN>" line. A Grafana personal
-      # / service-account / access-policy token does NOT work and produces
-      # "stack ID not configured". Once that token is stored, add back:
-      #   K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
-      #   K6_CLOUD_PROJECT_ID: '8414590'
-      # to env, and set cloud-run-locally: false.
+      # Authenticate to Grafana Cloud k6 BEFORE the run. This is the step that
+      # was missing all along: k6 cloud run needs the stack configured, and the
+      # run-k6-action's env-only auth never sets it, which is what produced
+      # "stack ID not configured". Logging in writes token + stack to the k6
+      # config that the next step then reads. The stack slug is the grafana.net
+      # subdomain (not secret); the token comes from the secret.
+      - name: Authenticate k6 with Grafana Cloud
+        run: k6 cloud login --token "$K6_CLOUD_TOKEN" --stack gigantictaco781
+        env:
+          K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
+
+      # Runs every k6/*.js on Grafana Cloud (cloud-run-locally: false), so each
+      # run appears under Testing & synthetics -> Performance -> project 8414590.
       - name: Run the load test
         uses: grafana/run-k6-action@v1
         env:
           BASE_URL: ${{ github.event.inputs.k6_base_url || 'https://test.k6.io' }}
         with:
           path: k6/*.js
-          cloud-run-locally: true
+          cloud-run-locally: false
 
       - name: Write a run marker to upload
         if: always()
