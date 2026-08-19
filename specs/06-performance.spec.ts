@@ -91,9 +91,9 @@ async function resourceProfile(page: import('@playwright/test').Page) {
   });
 }
 
-test.describe('Client-side performance', () => {
+test.describe('Client-side performance @Sb02ead9a', () => {
 
-  test('TC-057 The login page loads within budget', async ({ page }, testInfo) => {
+  test('TC-057 The login page loads within budget @Te3ddc039', async ({ page }, testInfo) => {
     const BUDGET_LOAD_MS = 6000;
     const BUDGET_TTFB_MS = 2000;
 
@@ -110,7 +110,7 @@ test.describe('Client-side performance', () => {
     }
   });
 
-  test('TC-058 First Contentful Paint on the login page is fast', async ({ page }, testInfo) => {
+  test('TC-058 First Contentful Paint on the login page is fast @T1d79f3f5', async ({ page }, testInfo) => {
     const BUDGET_FCP_MS = 3000;
 
     await page.goto('/', { waitUntil: 'load' });
@@ -124,7 +124,7 @@ test.describe('Client-side performance', () => {
     note(testInfo, `First Contentful Paint on the login page was ${fcp ?? 'not reported'} ms against a ${BUDGET_FCP_MS} ms budget - the point at which the user first sees content rather than a blank page.`);
   });
 
-  test('TC-059 The catalogue renders within budget after login', async ({ page }, testInfo) => {
+  test('TC-059 The catalogue renders within budget after login @Tf4a20c01', async ({ page }, testInfo) => {
     const BUDGET_MS = 5000;
     const login = new LoginPage(page);
     const inventory = new InventoryPage(page);
@@ -142,7 +142,7 @@ test.describe('Client-side performance', () => {
     note(testInfo, `From login submit to a fully rendered catalogue took ${renderMs} ms against a ${BUDGET_MS} ms budget. Largest Contentful Paint on the catalogue was ${lcp ?? 'not reported'} ms.`);
   });
 
-  test('TC-060 The catalogue page weight stays within budget', async ({ page }, testInfo) => {
+  test('TC-060 The catalogue page weight stays within budget @T5542e41f', async ({ page }, testInfo) => {
     const BUDGET_REQUESTS = 40;
     const BUDGET_KB = 3000;
     const login = new LoginPage(page);
@@ -160,7 +160,7 @@ test.describe('Client-side performance', () => {
     note(testInfo, `The catalogue fetched ${profile.count} resources totalling ${profile.totalKB} KB, against budgets of ${BUDGET_REQUESTS} requests and ${BUDGET_KB} KB. A rising request count or page weight is an early signal of front-end bloat.`);
   });
 
-  test('TC-061 Each step of the purchase journey stays within budget', async ({ shopper, page, cartPage, checkoutPage }, testInfo) => {
+  test('TC-061 Each step of the purchase journey stays within budget @Tf1b44467', async ({ shopper, page, cartPage, checkoutPage }, testInfo) => {
     const STEP_BUDGET_MS = 4000;
     const steps: Record<string, number> = {};
 
@@ -189,7 +189,7 @@ test.describe('Client-side performance', () => {
     }
   });
 
-  test('TC-062 The slow account stays within the degraded budget', async ({ page }, testInfo) => {
+  test('TC-062 The slow account stays within the degraded budget @T247e5410', async ({ page }, testInfo) => {
     // performance_glitch_user is SauceDemo's intentionally slow account. This
     // records the degradation rather than pretending it is fast, and guards a
     // looser ceiling so a genuine hang is still caught.

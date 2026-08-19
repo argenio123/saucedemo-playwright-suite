@@ -18,9 +18,9 @@ import * as fs from 'fs';
 
 const SUMMARY = 'k6-summary.json';
 
-test.describe('k6 performance results', () => {
+test.describe('k6 performance results @Sdb4ab150', () => {
 
-  test('TC-063 k6 load test meets its performance thresholds', async ({}, testInfo) => {
+  test('TC-063 k6 load test meets its performance thresholds @T18c64d40', async ({}, testInfo) => {
     if (!fs.existsSync(SUMMARY)) {
       note(testInfo, `No k6 summary was produced (${SUMMARY} not found), so the load-test result could not be evaluated. The k6 step must run before this test and export its summary.`);
       test.skip(true, `${SUMMARY} not found`);
