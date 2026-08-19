@@ -1,6 +1,11 @@
 name: Performance
 
-# Runs automatically on every push, and can be launched by hand.
+# The round trip:
+#   Testomat.io launches this workflow (CI profile) ->
+#   k6 executes the load test, streaming to Grafana Cloud when authenticated ->
+#   the Grafana run URL and k6's metrics are captured ->
+#   Playwright reports every case, including the k6 result (TC-063), back to
+#   Testomat.io, where the verdict, headline numbers and Grafana link appear.
 on:
   push:
     branches: [main]
@@ -10,19 +15,18 @@ on:
         description: k6 load-test target - must be a host you own or a sandbox. Never SauceDemo.
         required: false
         default: 'https://test.k6.io'
+      testomatio-run:
+        description: Testomat.io run id - passed automatically when launched from Testomat.io
+        required: false
+        default: ''
 
 jobs:
-  # Job 1 - client-side performance measured with Playwright against SauceDemo.
-  # Single-session measurement, the same footprint as the functional suite.
-  playwright-performance:
-    name: Playwright performance
+  performance:
+    name: Performance
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    # The official Playwright image ships Chromium and every system dependency
-    # preinstalled, so there is no apt-get step. That step was taking minutes on
-    # every run because the runner's Azure apt mirrors intermittently time out
-    # and fall back. The image tag MUST match the @playwright/test version in
-    # package.json (1.62.1) or the bundled browser will not match the client.
+    timeout-minutes: 25
+    # Official Playwright image: Chromium and system deps preinstalled, so no
+    # slow apt step. Tag must match @playwright/test in package.json (1.62.1).
     container:
       image: mcr.microsoft.com/playwright:v1.62.1-noble
     steps:
@@ -35,73 +39,62 @@ jobs:
 
       - run: npm ci
 
-      # Browsers are already in the image; this only links the version metadata.
-      # No --with-deps, so no apt-get and no mirror stall.
       - run: npx playwright install chromium
-
-      - name: Run the performance specs
-        env:
-          TESTOMATIO: ${{ secrets.TESTOMATIO }}
-          TESTOMATIO_TITLE: Performance - build ${{ github.run_number }}
-        run: npx playwright test specs/06-performance.spec.ts
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-performance-${{ github.run_number }}
-          path: results/
-          retention-days: 14
-
-  # Job 2 - server-side load with k6, streamed to Grafana Cloud when a token is
-  # present. Targets the Grafana sandbox, NOT SauceDemo.
-  k6-load:
-    name: k6 load test
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Install k6
         uses: grafana/setup-k6-action@v1
 
-      # Runs the test ON Grafana Cloud's load generators (cloud-run-locally:
-      # false), which is what makes it appear under Testing & synthetics ->
-      # Performance. This is the config Grafana itself recommends: the cloud
-      # projectID lives in options.cloud inside load-test.js, and the only
-      # credential needed is K6_CLOUD_TOKEN.
-      #
-      # K6_CLOUD_TOKEN must be a token from the k6 app (Performance -> Settings).
-      # A Grafana service-account or access-policy token gives "stack ID not
-      # configured". If the secret is absent the run still executes on the runner
-      # and the threshold gate still applies; only the cloud upload is skipped.
-      # Authenticate to Grafana Cloud k6 BEFORE the run. This is the step that
-      # was missing all along: k6 cloud run needs the stack configured, and the
-      # run-k6-action's env-only auth never sets it, which is what produced
-      # "stack ID not configured". Logging in writes token + stack to the k6
-      # config that the next step then reads. The stack slug is the grafana.net
-      # subdomain (not secret); the token comes from the secret.
+      # Best effort: authenticate to Grafana Cloud so the k6 run can stream
+      # there. continue-on-error means a bad or missing token never breaks the
+      # round trip - the run just falls back to local execution.
       - name: Authenticate k6 with Grafana Cloud
+        id: k6login
+        continue-on-error: true
         run: k6 cloud login --token "$K6_CLOUD_TOKEN" --stack gigantictaco781
         env:
           K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
 
-      # Runs every k6/*.js on Grafana Cloud (cloud-run-locally: false), so each
-      # run appears under Testing & synthetics -> Performance -> project 8414590.
-      - name: Run the load test
-        uses: grafana/run-k6-action@v1
+      # Runs k6 and always writes k6-summary.json. If cloud auth succeeded it
+      # also streams to Grafana (project 8414590 in options.cloud) and captures
+      # the run URL into the environment for TC-063 to embed in the Testomat.io
+      # result. The threshold gate is enforced later by TC-063, so this step is
+      # non-fatal on a breach.
+      - name: Run k6 load test
+        continue-on-error: true
         env:
           BASE_URL: ${{ github.event.inputs.k6_base_url || 'https://test.k6.io' }}
-        with:
-          path: k6/*.js
-          cloud-run-locally: false
+        run: |
+          set +e
+          if [ "${{ steps.k6login.outcome }}" = "success" ]; then
+            echo "Cloud auth OK - executing locally and streaming to Grafana."
+            k6 run --out cloud --summary-export=k6-summary.json k6/load-test.js 2>&1 | tee k6-output.txt
+          else
+            echo "No cloud auth - executing locally only."
+            k6 run --summary-export=k6-summary.json k6/load-test.js 2>&1 | tee k6-output.txt
+          fi
+          URL=$(grep -oE 'https://[a-z0-9-]+\.grafana\.net[^ ]*runs/[0-9]+' k6-output.txt | head -1)
+          if [ -n "$URL" ]; then echo "K6_GRAFANA_RUN_URL=$URL" >> "$GITHUB_ENV"; fi
+          echo "Captured Grafana run URL: ${URL:-none}"
 
-      - name: Write a run marker to upload
-        if: always()
-        run: echo "k6 load test completed on build ${{ github.run_number }}" > k6-result.txt
+      # Reports every performance case to Testomat.io: the Playwright client-side
+      # cases (TC-057 to TC-062) and the k6 result bridge (TC-063), which reads
+      # k6-summary.json and carries the Grafana link. This is the return leg -
+      # Grafana's result lands in Testomat.io. TC-063 fails the build if a k6
+      # threshold was breached, so the gate survives.
+      - name: Report performance results to Testomat.io
+        env:
+          TESTOMATIO: ${{ secrets.TESTOMATIO }}
+          TESTOMATIO_RUN: ${{ github.event.inputs.testomatio-run }}
+          TESTOMATIO_TITLE: Performance - build ${{ github.run_number }}
+          K6_GRAFANA_RUN_URL: ${{ env.K6_GRAFANA_RUN_URL }}
+        run: npx playwright test specs/06-performance.spec.ts specs/07-k6-performance-result.spec.ts
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: k6-result-${{ github.run_number }}
-          path: k6-result.txt
-          retention-days: 30
+          name: performance-results-${{ github.run_number }}
+          path: |
+            results/
+            k6-summary.json
+            k6-output.txt
+          retention-days: 14

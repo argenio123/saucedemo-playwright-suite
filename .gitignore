@@ -8,6 +8,11 @@ playwright-report/
 blob-report/
 playwright/.cache/
 
+# k6 run output (produced at runtime, not source)
+k6-summary*.json
+k6-output.txt
+k6-result.txt
+
 # Secrets - never commit the Testomat.io API key
 .env
 .env.local
