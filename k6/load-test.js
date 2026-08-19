@@ -19,7 +19,7 @@ export const options = {
   // projectID ties the run to the "Default project" in the k6 app, which is
   // what makes it appear under Testing & synthetics -> Performance.
   cloud: {
-    projectID: 8414007,
+    projectID: 8414590,
     distribution: {
       ashburn: { loadZone: 'amazon:us:ashburn', percent: 100 },
     },
