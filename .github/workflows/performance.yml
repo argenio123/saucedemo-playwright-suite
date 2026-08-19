@@ -80,9 +80,10 @@ jobs:
           BASE_URL: ${{ github.event.inputs.k6_base_url || 'https://test.k6.io' }}
           K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
         with:
-          path: k6/load-test.js
+          # Runs every .js in the k6 folder, so a new test authored in the
+          # Grafana editor only needs to be dropped into k6/ - no workflow edit.
+          path: k6/*.js
           cloud-run-locally: false
-          flags: --summary-export=k6-summary.json
 
       - uses: actions/upload-artifact@v4
         if: always()
