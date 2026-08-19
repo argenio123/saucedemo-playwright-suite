@@ -79,6 +79,10 @@ jobs:
         env:
           BASE_URL: ${{ github.event.inputs.k6_base_url || 'https://test.k6.io' }}
           K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
+          # The action requires this env var whenever the token is set, even
+          # though the script also carries options.cloud.projectID. Must match
+          # the project in load-test.js (8414590). Not secret, so set inline.
+          K6_CLOUD_PROJECT_ID: '8414590'
         with:
           # Runs every .js in the k6 folder, so a new test authored in the
           # Grafana editor only needs to be dropped into k6/ - no workflow edit.
