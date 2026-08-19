@@ -14,6 +14,16 @@ import { check, sleep } from 'k6';
 const BASE_URL = __ENV.BASE_URL || 'https://test.k6.io';
 
 export const options = {
+  // Grafana Cloud k6 settings. Used only when the run is sent to the cloud
+  // (cloud-run-locally: false in the workflow); ignored on a pure local run.
+  // projectID ties the run to the "Default project" in the k6 app, which is
+  // what makes it appear under Testing & synthetics -> Performance.
+  cloud: {
+    projectID: 8414007,
+    distribution: {
+      ashburn: { loadZone: 'amazon:us:ashburn', percent: 100 },
+    },
+  },
   stages: [
     { duration: '30s', target: 10 }, // ramp up to 10 virtual users
     { duration: '1m', target: 10 },  // hold at 10

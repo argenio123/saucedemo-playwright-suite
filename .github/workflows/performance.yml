@@ -64,25 +64,24 @@ jobs:
       - name: Install k6
         uses: grafana/setup-k6-action@v1
 
-      # Runs a pure local k6 test on the runner and produces the summary
-      # artifact. This is the CI gate: the thresholds in load-test.js fail the
-      # build on a real regression. No cloud credentials, so it cannot fail on
-      # auth. This is the reliable, always-green path.
+      # Runs the test ON Grafana Cloud's load generators (cloud-run-locally:
+      # false), which is what makes it appear under Testing & synthetics ->
+      # Performance. This is the config Grafana itself recommends: the cloud
+      # projectID lives in options.cloud inside load-test.js, and the only
+      # credential needed is K6_CLOUD_TOKEN.
       #
-      # OPTIONAL - stream to the Grafana Cloud k6 dashboard instead:
-      #   1. In Grafana, open Testing & synthetics -> Performance -> Settings and
-      #      copy the k6 "Personal API token" (NOT a Grafana service account or
-      #      cloud access-policy token - those give "stack ID not configured").
-      #   2. Store it as the K6_CLOUD_TOKEN secret, and set K6_CLOUD_PROJECT_ID
-      #      to 8414007.
-      #   3. Add the two env lines back and set cloud-run-locally: false below.
+      # K6_CLOUD_TOKEN must be a token from the k6 app (Performance -> Settings).
+      # A Grafana service-account or access-policy token gives "stack ID not
+      # configured". If the secret is absent the run still executes on the runner
+      # and the threshold gate still applies; only the cloud upload is skipped.
       - name: Run the load test
         uses: grafana/run-k6-action@v1
         env:
           BASE_URL: ${{ github.event.inputs.k6_base_url || 'https://test.k6.io' }}
+          K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
         with:
           path: k6/load-test.js
-          cloud-run-locally: true
+          cloud-run-locally: false
           flags: --summary-export=k6-summary.json
 
       - uses: actions/upload-artifact@v4
